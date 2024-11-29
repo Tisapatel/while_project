@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="//unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17-beta.0/vue.js"></script>
+    <script src="//unpkg.com/element-ui/lib/index.js"></script>
+    <script src="//unpkg.com/element-ui/lib/umd/locale/en.js"></script>
+    <script src="//unpkg.com/vue-data-tables@3.1.4/dist/data-tables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.js"></script>
+    <style>
+        [v-cloak] > * { display:none }
+        [v-cloak]::before { content: "loading…" }
+    </style>
+</head>
+<body>
+
+    <template id="create"> 
+        <div>
+          <el-button type="text" @click="dialogVisible = true">Create</el-button>
+          
+          <el-dialog
+                     title="Create"
+                     :visible.sync="dialogVisible"
+                     :before-close="handleClose">
+            <el-input placeholder="Please input" v-model="newData.content"></el-input>
+            <el-input placeholder="Please input" v-model="newData.flow_no"></el-input>
+            <el-input placeholder="Please input" v-model="newData.flow_type"></el-input>
+            <el-input placeholder="Please input" v-model="newData.flow_type_code"></el-input>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="dialogVisible = false">Cancel</el-button> 
+              <el-button type="primary" @click="createButton">Confirm</el-button>
+            </span>
+            </el-dialog>
+        </div> 
+        
+      </template>
+      <div id="app" v-cloak>
+        <el-dialog
+                   v-if="isEdit"
+                   title="Edit"
+                   :visible.sync="isEdit"
+                   width="30%"
+                   :before-close="handleClose">
+          <span>
+            <el-input placeholder="Please input" v-model="editData.content"></el-input>
+            <el-input placeholder="Please input" v-model="editData.flow_no"></el-input>
+            <el-input placeholder="Please input" v-model="editData.flow_type"></el-input>
+            <el-input placeholder="Please input" v-model="editData.flow_type_code"></el-input>
+          </span>
+          <span slot="footer" class="dialog-footer">
+            <el-button @click="isEdit = false">Cancel</el-button>
+            <el-button type="primary" @click="update">Confirm</el-button>
+          </span>
+          </el-dialog>
+        <create-component @create="$set(data, data.length, $event)"></create-component>
+        <data-tables :data="data" :action-col-def="actionColDef">
+          <el-table-column v-for="(title, index) in titles" :key="index"  :prop="title.prop" :label="title.label" sortable="custom">
+            </el-table-column>
+          </data-tables>
+      </div>
+
+
+    <script>
+        ELEMENT.locale(ELEMENT.lang.en)
+        Vue.use(DataTables)
+        Vue.use(DataTables.DataTablesServer)
+        var data, titles
+        Vue.component('create-component', {
+          template: '#create',
+          data() {
+    return {
+      newData:{
+        content: null,
+        flow_no: null,
+        flow_type: null,
+        flow_type_code: null
+      },
+      dialogVisible: false
+    };
+  },
+  methods: {
+    createButton(){
+      var vm = this;
+      vm.$emit('create', vm.newData)
+      vm.dialogVisible = false
+    },
+    handleClose(done) {
+      this.$confirm('Are you sure to close this dialog?')
+      .then(_ => {
+        done();
+      })
+      .catch(_ => {});
+    }
+  }
+})
+data = [
+  {
+    "content": "Water flood",
+    "flow_no": "FW201601010001",
+    "flow_type": "Repair",
+    "flow_type_code": "repair",
+  }, {
+    "content": "Lock broken",
+    "flow_no": "FW201601010002",
+    "flow_type": "Repair",
+    "flow_type_code": "repair",
+  }, {
+    "content": "Help to buy some drinks",
+    "flow_no": "FW201601010003",
+  "flow_type": "Help",
+    "flow_type_code": "help"
+  }];
+titles = [
+  {
+    prop: "flow_no",
+    label: "NO."
+  }, {
+    prop: "content",
+    label: "Content"
+  }, {
+    prop: "flow_type",
+    label: "Type"
+  }]
+var Main = {
+  data() {
+    var vm = this;
+    return {
+      visible_data: false,
+      isEdit: false,
+      editData:null,
+      data,
+      titles,
+      actionColDef: {
+        label: 'Actions',
+        tableColProps: {
+          align: 'center'
+        },
+        def: [{
+          handler: row => {
+            var clone = _.clone(row) 
+            vm.editData = clone
+            vm.isEdit = true
+          },
+          buttonProps: {
+            type: 'success'
+          },
+          name: 'Edit'
+        }, {
+          icon: 'message',
+          type: 'text',
+          handler: row => {
+            var index = _.findIndex(vm.data, ['flow_no', row.flow_no]);
+            vm.$delete(vm.data, index)
+          },
+          name: 'Delete'
+        }]
+      }
+    }
+  },
+  methods: {
+    update(){
+      var vm = this,
+          index = _.findIndex(vm.data, ['flow_no', vm.editData.flow_no]);
+      console.log(index)
+      vm.$set(vm.data, index, vm.editData)
+      vm.isEdit = false
+      
+    },
+    handleClose(done) {
+      this.$confirm('Are you sure to close this dialog?')
+      .then(_ => {
+        done();
+      })
+      .catch(_ => {});
+    },
+    getRowActionsDef() {
+      let self = this
+      return [{
+        type: 'primary',
+        handler(row) {
+          self.$message('Edit clicked')
+          console.log('Edit in row clicked', row)
+        },
+        name: 'Edit'
+      }]
+    }
+  }
+}
+var Ctor = Vue.extend(Main)
+new Ctor().$mount('#app')
+</script>
+</body>
+</html>
